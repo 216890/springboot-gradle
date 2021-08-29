@@ -29,7 +29,7 @@
       "name": "GIT_BRANCH",
       "displayName": "Git branch",
       "description": "Git branch to use the code from",
-      "value": "master"
+      "value": "main"
     },
     {
       "name": "GIT_SECRET",
@@ -44,6 +44,24 @@
     }
   ],
   "objects": [
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "${APP_NAME}"
+      },
+      "spec": {
+        "tags": [
+          {
+            "from": {
+              "kind": "DockerImage",
+              "name": "${APP_NAME}:latest"
+            },
+            "name": "latest"
+          }
+        ]
+      }
+    },
     {
       "apiVersion": "v1",
       "kind": "BuildConfig",
@@ -69,7 +87,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "springboot-gradle-s2i:latest"
+              "name": "springboot-gradle:latest"
             }
           },
           "type": "Source"
@@ -88,20 +106,12 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "apps/v1",
       "kind": "Deployment",
       "metadata": {
         "name": "${APP_NAME}",
         "annotations": {
-          "image.openshift.io/triggers": [
-            {
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "${APP_NAME}:latest"
-              },
-              "fieldPath": "spec.template.spec.containers[0].image"
-            }
-          ]
+          "image.openshift.io/triggers": "[{\"from\": {\"kind\": \"ImageStreamTag\",\"name\": \"${APP_NAME}:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
         }
       },
       "spec": {
@@ -112,7 +122,7 @@
           }
         },
         "strategy": {
-          "type": "Rolling"
+          "type": "RollingUpdate"
         },
         "template": {
           "metadata": {

@@ -4,7 +4,7 @@ DEPLOY_DIR=/opt/openshift
 
 cp -Rf /tmp/src/. ./
 
-gradle -s assemble --scan
+gradle -s assemble --scan --no-daemon
 
 ERR=$?
 if [ $ERR -ne 0 ]; then
