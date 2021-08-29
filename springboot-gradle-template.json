@@ -1,0 +1,170 @@
+{
+  "apiVersion": "v1",
+  "kind": "Template",
+  "metadata": {
+    "name": "springboot-gradle-application",
+    "annotations": {
+      "iconClass": "icon-spring-boot",
+      "description": "A template for a Spring Boot microservice with gradle build.",
+      "tags": "gradle,jvm,spring,kotlin,java"
+    }
+  },
+  "labels": {
+    "template": "springboot-gradle-application",
+    "app": "${APP_NAME}"
+  },
+  "parameters": [
+    {
+      "name": "APP_NAME",
+      "displayName": "Microservice Name",
+      "value": ""
+    },
+    {
+      "name": "GIT_URL",
+      "displayName": "Repository URL",
+      "description": "URL to git repository with application source code",
+      "value": ""
+    },
+    {
+      "name": "GIT_BRANCH",
+      "displayName": "Git branch",
+      "description": "Git branch to use the code from",
+      "value": "master"
+    },
+    {
+      "name": "GIT_SECRET",
+      "displayName": "Github webhook trigger secret",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{12}"
+    },
+    {
+      "name": "CONTEXT_DIR",
+      "displayName": "Source code directory",
+      "value": "/"
+    }
+  ],
+  "objects": [
+    {
+      "apiVersion": "v1",
+      "kind": "BuildConfig",
+      "metadata": {
+        "name": "${APP_NAME}"
+      },
+      "spec": {
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "${APP_NAME}:latest"
+          }
+        },
+        "source": {
+          "git": {
+            "uri": "${GIT_URL}",
+            "ref": "${GIT_BRANCH}"
+          },
+          "contextDir": "${CONTEXT_DIR}",
+          "type": "Git"
+        },
+        "strategy": {
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "springboot-gradle-s2i:latest"
+            }
+          },
+          "type": "Source"
+        },
+        "triggers": [
+          {
+            "github": {
+              "secret": "${GIT_SECRET}"
+            },
+            "type": "GitHub"
+          },
+          {
+            "type": "ImageChange"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "${APP_NAME}",
+        "annotations": {
+          "image.openshift.io/triggers": [
+            {
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${APP_NAME}:latest"
+              },
+              "fieldPath": "spec.template.spec.containers[0].image"
+            }
+          ]
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "${APP_NAME}"
+          }
+        },
+        "strategy": {
+          "type": "Rolling"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "${APP_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "${APP_NAME}",
+                "image": "${APP_NAME}:latest",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/liveness",
+                    "port": 8080
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "${APP_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "8080-tcp",
+            "port": 8080
+          }
+        ],
+        "selector": {
+          "app": "${APP_NAME}"
+        }
+      }
+    }
+  ]
+}

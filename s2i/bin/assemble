@@ -1,0 +1,21 @@
+#!/bin/bash -e
+
+DEPLOY_DIR=/opt/openshift
+
+cp -Rf /tmp/src/. ./
+
+gradle -s assemble --scan
+
+ERR=$?
+if [ $ERR -ne 0 ]; then
+echo "Gradle build error: $ERR"
+exit $ERR
+fi
+
+mv $HOME/build/libs/*.jar $DEPLOY_DIR/app.jar
+[ ! -f $DEPLOY_DIR/app.jar ] && echo "Application could not be properly built." && exit 1 
+
+gradle clean
+rm -rf $HOME/.gradle/caches
+
+echo "Application built successfully."

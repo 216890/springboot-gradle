@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+exec java -Djava.security.egd=file:/dev/./urandom -jar -Dspring.profiles.active=prod /opt/openshift/app.jar 
