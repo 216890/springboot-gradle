@@ -60,6 +60,9 @@
             "name": "latest"
           }
         ]
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
@@ -100,29 +103,27 @@
             "type": "GitHub"
           },
           {
+            "type": "ConfigChange"
+          },
+          {
             "type": "ImageChange"
           }
         ]
       }
     },
     {
-      "apiVersion": "apps/v1",
-      "kind": "Deployment",
+      "apiVersion": "v1",
+      "kind": "DeploymentConfig",
       "metadata": {
-        "name": "${APP_NAME}",
-        "annotations": {
-          "image.openshift.io/triggers": "[{\"from\": {\"kind\": \"ImageStreamTag\",\"name\": \"${APP_NAME}:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
-        }
+        "name": "${APP_NAME}"
       },
       "spec": {
         "replicas": 1,
         "selector": {
-          "matchLabels": {
-            "app": "${APP_NAME}"
-          }
+          "app": "${APP_NAME}"
         },
         "strategy": {
-          "type": "RollingUpdate"
+          "type": "Rolling"
         },
         "template": {
           "metadata": {
@@ -155,7 +156,25 @@
               }
             ]
           }
-        }
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          },
+          {
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "${APP_NAME}"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${APP_NAME}:latest"
+              }
+            },
+            "type": "ImageChange"
+          }
+        ]
       }
     },
     {
